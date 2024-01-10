@@ -235,12 +235,16 @@ class Sheet:
         self.x_extent = None
         self.y_extent = None 
     def set_x_extent():
+
         pass
     def getName(self):
+
         pass
-    def getMsatrix(self):
+    def getMatrix(self):
+
         pass
     def getCell(self):
+
         pass 
 
 
