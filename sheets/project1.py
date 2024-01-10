@@ -14,7 +14,7 @@
 #        into your project in whatever way you see fit.
 import decimal
 from utils import *
-# import numpy as np
+import numpy as np
 
 class CellErrorType(enum.Enum):
     """
@@ -94,7 +94,7 @@ class Workbook:
         # Return the number of spreadsheets in the workbook.
         return len(self.workbook.keys())
 
-    def list_sheets(self) -> List[str]:
+    def list_sheets(self) -> list[str]:
         # Return a list of the spreadsheet names in the workbook, with the
         # capitalization specified at creation, and in the order that the sheets
         # appear within the workbook.
@@ -108,7 +108,7 @@ class Workbook:
         # workbook's internal state.
         return self.workbook.keys()
 
-    def new_sheet(self, sheet_name: Optional[str] = None) -> Tuple[int, str]:
+    def new_sheet(self, sheet_name: Optional[str] = None) -> tuple[int, str]:
         # Add a new sheet to the workbook.  If the sheet name is specified, it
         # must be unique.  If the sheet name is None, a unique sheet name is
         # generated.  "Uniqueness" is determined in a case-insensitive manner,
@@ -160,7 +160,7 @@ class Workbook:
         else:
             raise KeyError("Sheet not found")
 
-    def get_sheet_extent(self, sheet_name: str) -> Tuple[int, int]:
+    def get_sheet_extent(self, sheet_name: str) -> tuple[int, int]:
         # Return a tuple (num-cols, num-rows) indicating the current extent of
         # the specified spreadsheet.
         #
@@ -237,19 +237,32 @@ class Workbook:
 class Sheet:
     def __init__(self, sheet_name):
         self.sheet_name = sheet_name
-        self.data = 
+        self.data = np.empty((0, 0))
         self.x_extent = None
         self.y_extent = None 
-    def set_x_extent():
 
+    @staticmethod
+    def update_extent_x(idx : int):
+        # increment self.extent_x at idx
+        # if idx is out of bounds, extend self.extent_x with 0's THEN increment
         pass
+
+    @staticmethod
+    def update_extent_y(idx : int):
+        # increment self.extent_y at idx
+        # if idx is out of bounds, extend self.extent_y with 0's THEN increment
+        pass
+
+    @staticmethod
+    def resize_data(idx_x : int, idx_y : int):
+        # check if idx_x and/or idx_y is out of bounds, and resize self.data accordingly
+        # make sure new entries created are initialized with (None, None)
+        pass
+
     def getName(self):
+        return self.sheet_name
 
-        pass
-    def getMatrix(self):
-
-        pass
-    def set_cell_contents(self, location: str, contents: Optional[str]) -> None:\
+    def set_cell_contents(self, location: str, contents: Optional[str]) -> None:
         return
         # If the cell location is invalid, a ValueError is raised.
         #
@@ -265,74 +278,89 @@ class Sheet:
         # rather, the cell's value will be a CellError object indicating the
         # naure of the issue.
 
-        # CHECK LOCATION IS VALID
-
-        # CHECK contents == None 
+        # TODO: CALL isValidLoc() to check loc is valid
+            # if not, raise ValueError()
+    
+        # TODO: ELSE 
+            # USE UTIL TO CONVERT LOC TO (idx-x, idx-y) using locToIdx() from utils
         
-        # REMOVE WHITESPACE
+        # TODO: check if self.data needs to be resized (possibly create helper functions resizing)
+            # check if idx-x is out of bounds -> resize 
+            # check if idx-y is out of bounds -> resize
+                # could be done with helper by calling resize(idx-x, idx-y)
+        
+        # TODO: grab self.data[idx-x][idx-y]
+        # CHECK IF CELL IS SET
+        # if so, no need to update self.extent_x or self.extent_y
+        # otherwise if cell == (None, None), update self.extent_x and/or self.extent_y (possibly create helper functions for each of these)
+            #could be done with helper functions update_extent_x(idx-y) and update_extent_y(idx-x)
+        
+        # TODO: UPDATE CELL CONTENTS
+            # CHECK contents == None 
+            # REMOVE WHITESPACE
+            # CHECK contents == ""
+            # CHECK STRING contents[0] == "'"
+            # CHECK FORMULA contents[0] == "="
+                # CHECK VALID FORMULA, otherwise set VALUE as APPROPRIATE CELL ERROR
+            # ELSE NUM
+    
+        # TODO: UPDATE CELL VALUE ACCORDINGLY
+        # TODO: CHECK DEPENDENCIES TO SEE IF ANY OTHER CELLS
+        #       NEED PROPOGATING THE VALUE CHANGE
+        
+    
+        # if contents == "":
+        #     return
 
-        # CHECK contents == ""
+        # # SET CONTENTS
+        # self.contents = cont
 
+        # # SET VALUE
+        # if cont[0] == "'":
+        #     self.value = cont[1:]
+        # elif cont[0] == "=":
+        #     self.value = cont
+        # else:
+        #     try:
+        #         self.value = decimal.Decimal(cont)
+        #     except:
+        #         raise ValueError("This type not supported.")
+            
+    def getCell(self, location: str) -> tuple[str, Any]:
 
-        # CHECK STRING contents[0] == "'"
-
-        # CHECK FORMULA contents[0] == "="
-            # CHECK VALID FORMULA
-
-        # ELSE NUM
-
-
-
-        if contents == "":
-            return
-
-        # SET CONTENTS
-        self.contents = cont
-
-        # SET VALUE
-        if cont[0] == "'":
-            self.value = cont[1:]
-        elif cont[0] == "=":
-            self.value = cont
-        else:
-            try:
-                self.value = decimal.Decimal(cont)
-            except:
-                raise ValueError("This type not supported.")
-    def getCell(self):
-
+        # This is not needed?
         pass 
 
 
-class Cell:
+# class Cell:
 
-    def __init__(self):
-        self.contents = None
-        self.value = None
+#     def __init__(self):
+#         self.contents = None
+#         self.value = None
     
-    def setContentValue(self, cont : str):
-        if cont == "":
-            return
+#     def setContentValue(self, cont : str):
+#         if cont == "":
+#             return
 
-        # SET CONTENTS
-        self.contents = cont
+#         # SET CONTENTS
+#         self.contents = cont
 
-        # SET VALUE
-        if cont[0] == "'":
-            self.value = cont[1:]
-        elif cont[0] == "=":
-            self.value = cont
-        else:
-            try:
-                self.value = decimal.Decimal(cont)
-            except:
-                raise ValueError("This type not supported.")
+#         # SET VALUE
+#         if cont[0] == "'":
+#             self.value = cont[1:]
+#         elif cont[0] == "=":
+#             self.value = cont
+#         else:
+#             try:
+#                 self.value = decimal.Decimal(cont)
+#             except:
+#                 raise ValueError("This type not supported.")
 
-        return
+#         return
 
-    def getContent(self) -> str:
-        return self.contents
+#     def getContent(self) -> str:
+#         return self.contents
     
-    def getValue(self) -> Any:
-        return self.value
+#     def getValue(self) -> Any:
+#         return self.value
 
