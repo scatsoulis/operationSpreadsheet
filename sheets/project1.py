@@ -13,6 +13,7 @@
 # NOTE:  THIS FILE WILL NOT WORK AS-IS.  You are expected to incorporate it
 #        into your project in whatever way you see fit.
 import decimal
+from utils import *
 
 class CellErrorType(enum.Enum):
     """
@@ -122,7 +123,7 @@ class Workbook:
 
         # handles empty string sheet name
         index = 0
-        sheet_name = clearWhitespaceEdge(sheet_name)
+        sheet_name =  clearWhitespaceEdge(sheet_name)
         if sheet_name == "":
             raise ValueError("Sheet name cannot be an empty string")
         if sheet_name.lower() in self.lower_sheetnames:
@@ -136,7 +137,7 @@ class Workbook:
         if not sheet_name:
             sheet_name = "Sheet" + self.curr_gen
             self.curr_gen += 1
-        lower_sheetnames[sheet_name.lower()] = sheet_name
+        self.lower_sheetnames[sheet_name.lower()] = sheet_name
         self.workbook[sheet_name] = Sheet(sheet_name)
         return (len(self.workbook.keys() - 1), sheet_name)
 
@@ -148,8 +149,8 @@ class Workbook:
         # case does not have to.
         #
         # If the specified sheet name is not found, a KeyError is raised.
-        if sheet_name.lower() in lower_sheetnames:
-            original_sheetname = lower_sheetnames[sheet_name.lower()]
+        if sheet_name.lower() in self.lower_sheetnames:
+            original_sheetname = self.lower_sheetnames[sheet_name.lower()]
             del self.workbook[original_sheetname]     
         else:
             raise KeyError("Sheet not found")
@@ -251,7 +252,7 @@ class Cell:
     
     def setContentValue(self, cont : str):
         if cont == "":
-            pass
+            return
 
         # SET CONTENTS
         self.contents = cont
@@ -265,7 +266,9 @@ class Cell:
             try:
                 self.value = decimal.Decimal(cont)
             except:
-                raise(ValueError)
+                raise ValueError("This type not supported.")
+
+        return
 
     def getContent(self) -> str:
         return self.contents
