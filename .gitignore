@@ -1,1 +1,4 @@
 **/*.pdf
+**/myEnv
+**/*.pyc
+**/dummy.py

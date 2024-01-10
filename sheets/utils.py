@@ -1,12 +1,27 @@
 # Generally useful functions for the sheets package
+import re
 
 
-def testCaseInsensitive():
-    pass
+def testCaseInsensitive(newString: str, stringList: str):
+    """Compare a new string to a list of strings, case insensitive"""
+
+    for string in stringList:
+        if newString.lower() == string.lower():
+            raise ValueError("Name already exists - please choose something else")
+
+    print(f"Sensitivity test passed for {newString}")
 
 
-def clearWhiteSpace():
-    pass
+def clearWhiteSpaceEdges(data: str):
+    """Clears leading and trailing whitespaces of a given input"""
+
+    return data.strip()
+
+
+def clearWhiteSpaceAll(data: str):
+    """Clears all whitespaces from given input"""
+
+    return re.sub(r"\s+", "", data)  # Replaces any whitespace with an empty string
 
 
 def testEmptyCell():
@@ -30,3 +45,10 @@ def isValidLoc(location : str) -> bool:
     # else return true
 
     pass
+
+if __name__ == "__main__":
+    data1 = clearWhiteSpaceEdges("  This is a test  ")
+    data2 = clearWhiteSpaceAll("  This is a test  ")
+
+    print(data1)
+    print(data2)

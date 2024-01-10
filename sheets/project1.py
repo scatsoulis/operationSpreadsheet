@@ -1,3 +1,5 @@
+import sys
+
 # ==============================================================================
 # Caltech CS130 - Winter 2023
 #
@@ -15,6 +17,78 @@
 import decimal
 from utils import *
 import numpy as np
+import enum
+from typing import Optional, Tuple, Any
+
+
+class CellErrorType(enum.Enum):
+    """
+    This enum specifies the kinds of errors that spreadsheet cells can hold.
+    """
+
+    # A formula doesn't parse successfully ("#ERROR!")
+    PARSE_ERROR = 1
+
+    # A cell is part of a circular reference ("#CIRCREF!")
+    CIRCULAR_REFERENCE = 2
+
+    # A cell-reference is invalid in some way ("#REF!")
+    BAD_REFERENCE = 3
+
+    # Unrecognized function name ("#NAME?")
+    BAD_NAME = 4
+
+    # A value of the wrong type was encountered during evaluation ("#VALUE!")
+    TYPE_ERROR = 5
+
+    # A divide-by-zero was encountered during evaluation ("#DIV/0!")
+    DIVIDE_BY_ZERO = 6
+
+
+class CellError:
+    """
+    This class represents an error value from user input, cell parsing, or
+    evaluation.
+    """
+
+    def __init__(
+        self,
+        error_type: CellErrorType,
+        detail: str,
+        exception: Optional[Exception] = None,
+    ):
+        self._error_type = error_type
+        self._detail = detail
+        self._exception = exception
+
+    def get_type(self) -> CellErrorType:
+        """The category of the cell error."""
+        return self._error_type
+
+    def get_detail(self) -> str:
+        """More detail about the cell error."""
+        return self._detail
+
+    def get_exception(self) -> Optional[Exception]:
+        """
+        If the cell error was generated from a raised exception, this is the
+        exception that was raised.  Otherwise this will be None.
+        """
+        return self._exception
+
+    def __str__(self) -> str:
+        return f'ERROR[{self._error_type}, "{self._detail}"]'
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
+import enum
+from typing import Optional, Tuple, Any
+import decimal
+from utils import *
+import numpy as np
+
 
 class CellErrorType(enum.Enum):
     """
@@ -106,7 +180,7 @@ class Workbook:
         #
         # A user should be able to mutate the return-value without affecting the
         # workbook's internal state.
-        return self.workbook.keys()
+        return list(self.workbook.keys())
 
     def new_sheet(self, sheet_name: Optional[str] = None) -> tuple[int, str]:
         # Add a new sheet to the workbook.  If the sheet name is specified, it
@@ -120,32 +194,39 @@ class Workbook:
         #
         # If the spreadsheet name is an empty string (not None), or it is
         # otherwise invalid, a ValueError is raised.
-        
 
         # handles empty string sheet name
         index = 0
 
-        # if sheet name doesn't exist, generate name
+        # Input not given
         if not sheet_name:
-            sheet_name = "Sheet" + self.curr_gen
+            sheet_name = "Sheet" + str(self.curr_gen)
             self.curr_gen += 1
+            # return sheet_name
 
-        sheet_name =  clearWhiteSpaceEdge(sheet_name)
-        
+        # Input given
+        sheet_name = clearWhiteSpaceEdges(sheet_name)
         if sheet_name == "":
             raise ValueError("Sheet name cannot be an empty string")
-        if sheet_name.lower() in self.lower_sheetnames:
+        elif sheet_name.lower() in self.lower_sheetnames:
             raise ValueError("Sheet name already exists. Select a different name")
         # handles invalid char for name
-        allowed_chars = " .?!,:;!@#$%^&*()-_abcdefghijklmnopqrstuvwxyz1234567890"
-        for char in sheet_name:
-            if char not in allowed_chars:
-                raise ValueError("Sheet name can only have the following characters: .?!,:;!@#$%^&*()-_")
-        
+        else:
+            allowed_chars = ".?!,:;!@#$%^&*()-_abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            for char in sheet_name:
+                if char not in allowed_chars:
+                    raise ValueError(
+                        "Sheet name can only have the following characters: .?!,:;!@#$%^&*()-_"
+                    )
+        # if sheet name doesn't exist, generate name
         self.lower_sheetnames[sheet_name.lower()] = sheet_name
-        self.workbook[sheet_name] = Sheet(sheet_name)
-        return (len(self.workbook.keys() - 1), sheet_name)
+        print(self.lower_sheetnames)
+        print("hello")
 
+        self.workbook[sheet_name] = Sheet(sheet_name)
+        self.lower_sheetnames[sheet_name.lower()] = sheet_name
+
+        return (len(self.workbook.keys()) - 1, sheet_name)
 
     def del_sheet(self, sheet_name: str) -> None:
         # Delete the spreadsheet with the specified name.
@@ -156,7 +237,7 @@ class Workbook:
         # If the specified sheet name is not found, a KeyError is raised.
         if sheet_name.lower() in self.lower_sheetnames:
             original_sheetname = self.lower_sheetnames[sheet_name.lower()]
-            del self.workbook[original_sheetname]     
+            del self.workbook[original_sheetname]
         else:
             raise KeyError("Sheet not found")
 
@@ -239,22 +320,22 @@ class Sheet:
         self.sheet_name = sheet_name
         self.data = np.empty((0, 0))
         self.x_extent = None
-        self.y_extent = None 
+        self.y_extent = None
 
     @staticmethod
-    def update_extent_x(idx : int):
+    def update_extent_x(idx: int):
         # increment self.extent_x at idx
         # if idx is out of bounds, extend self.extent_x with 0's THEN increment
         pass
 
     @staticmethod
-    def update_extent_y(idx : int):
+    def update_extent_y(idx: int):
         # increment self.extent_y at idx
         # if idx is out of bounds, extend self.extent_y with 0's THEN increment
         pass
 
     @staticmethod
-    def resize_data(idx_x : int, idx_y : int):
+    def resize_data(idx_x: int, idx_y: int):
         # check if idx_x and/or idx_y is out of bounds, and resize self.data accordingly
         # make sure new entries created are initialized with (None, None)
         pass
@@ -279,36 +360,35 @@ class Sheet:
         # naure of the issue.
 
         # TODO: CALL isValidLoc() to check loc is valid
-            # if not, raise ValueError()
-    
-        # TODO: ELSE 
-            # USE UTIL TO CONVERT LOC TO (idx-x, idx-y) using locToIdx() from utils
-        
+        # if not, raise ValueError()
+
+        # TODO: ELSE
+        # USE UTIL TO CONVERT LOC TO (idx-x, idx-y) using locToIdx() from utils
+
         # TODO: check if self.data needs to be resized (possibly create helper functions resizing)
-            # check if idx-x is out of bounds -> resize 
-            # check if idx-y is out of bounds -> resize
-                # could be done with helper by calling resize(idx-x, idx-y)
-        
+        # check if idx-x is out of bounds -> resize
+        # check if idx-y is out of bounds -> resize
+        # could be done with helper by calling resize(idx-x, idx-y)
+
         # TODO: grab self.data[idx-x][idx-y]
         # CHECK IF CELL IS SET
         # if so, no need to update self.extent_x or self.extent_y
         # otherwise if cell == (None, None), update self.extent_x and/or self.extent_y (possibly create helper functions for each of these)
-            #could be done with helper functions update_extent_x(idx-y) and update_extent_y(idx-x)
-        
+        # could be done with helper functions update_extent_x(idx-y) and update_extent_y(idx-x)
+
         # TODO: UPDATE CELL CONTENTS
-            # CHECK contents == None 
-            # REMOVE WHITESPACE
-            # CHECK contents == ""
-            # CHECK STRING contents[0] == "'"
-            # CHECK FORMULA contents[0] == "="
-                # CHECK VALID FORMULA, otherwise set VALUE as APPROPRIATE CELL ERROR
-            # ELSE NUM
-    
+        # CHECK contents == None
+        # REMOVE WHITESPACE
+        # CHECK contents == ""
+        # CHECK STRING contents[0] == "'"
+        # CHECK FORMULA contents[0] == "="
+        # CHECK VALID FORMULA, otherwise set VALUE as APPROPRIATE CELL ERROR
+        # ELSE NUM
+
         # TODO: UPDATE CELL VALUE ACCORDINGLY
         # TODO: CHECK DEPENDENCIES TO SEE IF ANY OTHER CELLS
         #       NEED PROPOGATING THE VALUE CHANGE
-        
-    
+
         # if contents == "":
         #     return
 
@@ -325,11 +405,10 @@ class Sheet:
         #         self.value = decimal.Decimal(cont)
         #     except:
         #         raise ValueError("This type not supported.")
-            
-    def getCell(self, location: str) -> tuple[str, Any]:
 
+    def getCell(self, location: str) -> tuple[str, Any]:
         # This is not needed?
-        pass 
+        pass
 
 
 # class Cell:
@@ -337,7 +416,7 @@ class Sheet:
 #     def __init__(self):
 #         self.contents = None
 #         self.value = None
-    
+
 #     def setContentValue(self, cont : str):
 #         if cont == "":
 #             return
@@ -360,7 +439,6 @@ class Sheet:
 
 #     def getContent(self) -> str:
 #         return self.contents
-    
+
 #     def getValue(self) -> Any:
 #         return self.value
-
