@@ -14,6 +14,7 @@
 #        into your project in whatever way you see fit.
 import decimal
 from utils import *
+# import numpy as np
 
 class CellErrorType(enum.Enum):
     """
@@ -123,20 +124,24 @@ class Workbook:
 
         # handles empty string sheet name
         index = 0
-        sheet_name =  clearWhitespaceEdge(sheet_name)
+
+        # if sheet name doesn't exist, generate name
+        if not sheet_name:
+            sheet_name = "Sheet" + self.curr_gen
+            self.curr_gen += 1
+
+        sheet_name =  clearWhiteSpaceEdge(sheet_name)
+        
         if sheet_name == "":
             raise ValueError("Sheet name cannot be an empty string")
         if sheet_name.lower() in self.lower_sheetnames:
             raise ValueError("Sheet name already exists. Select a different name")
         # handles invalid char for name
-        allowed_chars = ".?!,:;!@#$%^&*()-_abcdefghijklmnopqrstuvwxyz1234567890"
+        allowed_chars = " .?!,:;!@#$%^&*()-_abcdefghijklmnopqrstuvwxyz1234567890"
         for char in sheet_name:
             if char not in allowed_chars:
                 raise ValueError("Sheet name can only have the following characters: .?!,:;!@#$%^&*()-_")
-        # if sheet name doesn't exist, generate name
-        if not sheet_name:
-            sheet_name = "Sheet" + self.curr_gen
-            self.curr_gen += 1
+        
         self.lower_sheetnames[sheet_name.lower()] = sheet_name
         self.workbook[sheet_name] = Sheet(sheet_name)
         return (len(self.workbook.keys() - 1), sheet_name)
@@ -232,6 +237,7 @@ class Workbook:
 class Sheet:
     def __init__(self, sheet_name):
         self.sheet_name = sheet_name
+        self.data = 
         self.x_extent = None
         self.y_extent = None 
     def set_x_extent():
@@ -243,6 +249,56 @@ class Sheet:
     def getMatrix(self):
 
         pass
+    def set_cell_contents(self, location: str, contents: Optional[str]) -> None:\
+        return
+        # If the cell location is invalid, a ValueError is raised.
+        #
+        # A cell may be set to "empty" by specifying a contents of None.
+        #
+        # Leading and trailing whitespace are removed from the contents before
+        # storing them in the cell.  Storing a zero-length string "" (or a
+        # string composed entirely of whitespace) is equivalent to setting the
+        # cell contents to None.
+        #
+        # If the cell contents appear to be a formula, and the formula is
+        # invalid for some reason, this method does not raise an exception;
+        # rather, the cell's value will be a CellError object indicating the
+        # naure of the issue.
+
+        # CHECK LOCATION IS VALID
+
+        # CHECK contents == None 
+        
+        # REMOVE WHITESPACE
+
+        # CHECK contents == ""
+
+
+        # CHECK STRING contents[0] == "'"
+
+        # CHECK FORMULA contents[0] == "="
+            # CHECK VALID FORMULA
+
+        # ELSE NUM
+
+
+
+        if contents == "":
+            return
+
+        # SET CONTENTS
+        self.contents = cont
+
+        # SET VALUE
+        if cont[0] == "'":
+            self.value = cont[1:]
+        elif cont[0] == "=":
+            self.value = cont
+        else:
+            try:
+                self.value = decimal.Decimal(cont)
+            except:
+                raise ValueError("This type not supported.")
     def getCell(self):
 
         pass 
