@@ -12,7 +12,7 @@
 #
 # NOTE:  THIS FILE WILL NOT WORK AS-IS.  You are expected to incorporate it
 #        into your project in whatever way you see fit.
-
+import decimal
 
 class CellErrorType(enum.Enum):
     """
@@ -233,10 +233,43 @@ class Sheet:
         self.sheet_name = sheet_name
         self.x_extent = None
         self.y_extent = None 
-    def set_x_extent()
+    def set_x_extent():
+        pass
     def getName(self):
         pass
-    def getMatrix(self):
+    def getMsatrix(self):
         pass
     def getCell(self):
         pass 
+
+
+class Cell:
+
+    def __init__(self):
+        self.contents = None
+        self.value = None
+    
+    def setContentValue(self, cont : str):
+        if cont == "":
+            pass
+
+        # SET CONTENTS
+        self.contents = cont
+
+        # SET VALUE
+        if cont[0] == "'":
+            self.value = cont[1:]
+        elif cont[0] == "=":
+            self.value = cont
+        else:
+            try:
+                self.value = decimal.Decimal(cont)
+            except:
+                raise(ValueError)
+
+    def getContent(self) -> str:
+        return self.contents
+    
+    def getValue(self) -> Any:
+        return self.value
+
