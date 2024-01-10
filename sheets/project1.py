@@ -14,6 +14,68 @@
 #        into your project in whatever way you see fit.
 
 
+class CellErrorType(enum.Enum):
+    """
+    This enum specifies the kinds of errors that spreadsheet cells can hold.
+    """
+
+    # A formula doesn't parse successfully ("#ERROR!")
+    PARSE_ERROR = 1
+
+    # A cell is part of a circular reference ("#CIRCREF!")
+    CIRCULAR_REFERENCE = 2
+
+    # A cell-reference is invalid in some way ("#REF!")
+    BAD_REFERENCE = 3
+
+    # Unrecognized function name ("#NAME?")
+    BAD_NAME = 4
+
+    # A value of the wrong type was encountered during evaluation ("#VALUE!")
+    TYPE_ERROR = 5
+
+    # A divide-by-zero was encountered during evaluation ("#DIV/0!")
+    DIVIDE_BY_ZERO = 6
+
+
+class CellError:
+    """
+    This class represents an error value from user input, cell parsing, or
+    evaluation.
+    """
+
+    def __init__(
+        self,
+        error_type: CellErrorType,
+        detail: str,
+        exception: Optional[Exception] = None,
+    ):
+        self._error_type = error_type
+        self._detail = detail
+        self._exception = exception
+
+    def get_type(self) -> CellErrorType:
+        """The category of the cell error."""
+        return self._error_type
+
+    def get_detail(self) -> str:
+        """More detail about the cell error."""
+        return self._detail
+
+    def get_exception(self) -> Optional[Exception]:
+        """
+        If the cell error was generated from a raised exception, this is the
+        exception that was raised.  Otherwise this will be None.
+        """
+        return self._exception
+
+    def __str__(self) -> str:
+        return f'ERROR[{self._error_type}, "{self._detail}"]'
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
 class Workbook:
     # A workbook containing zero or more named spreadsheets.
     #
@@ -22,11 +84,13 @@ class Workbook:
 
     def __init__(self):
         # Initialize a new empty workbook.
-        pass
+        self.workbook = {}
+        self.lower_sheetnames = {}
+        self.curr_gen = 1
 
     def num_sheets(self) -> int:
         # Return the number of spreadsheets in the workbook.
-        pass
+        return len(self.workbook.keys())
 
     def list_sheets(self) -> List[str]:
         # Return a list of the spreadsheet names in the workbook, with the
@@ -40,7 +104,7 @@ class Workbook:
         #
         # A user should be able to mutate the return-value without affecting the
         # workbook's internal state.
-        pass
+        return self.workbook.keys()
 
     def new_sheet(self, sheet_name: Optional[str] = None) -> Tuple[int, str]:
         # Add a new sheet to the workbook.  If the sheet name is specified, it
@@ -54,7 +118,28 @@ class Workbook:
         #
         # If the spreadsheet name is an empty string (not None), or it is
         # otherwise invalid, a ValueError is raised.
-        pass
+        
+
+        # handles empty string sheet name
+        index = 0
+        sheet_name = clearWhitespace(sheet_name)
+        if sheet_name == "":
+            raise ValueError("Sheet name cannot be an empty string")
+        if sheet_name.lower() in self.lower_sheetnames:
+            raise ValueError("Sheet name already exists. Select a different name")
+        # handles invalid char for name
+        allowed_chars = ".?!,:;!@#$%^&*()-_abcdefghijklmnopqrstuvwxyz1234567890"
+        for char in sheet_name:
+            if char not in allowed_chars:
+                raise ValueError("Sheet name can only have the following characters: .?!,:;!@#$%^&*()-_")
+        # if sheet name doesn't exist, generate name
+        if not sheet_name:
+            sheet_name = "Sheet" + self.curr_gen
+            self.curr_gen += 1
+        lower_sheetnames[sheet_name.lower] = sheet_name
+        self.workbook[sheet_name] = Sheet(sheet_name)
+        return (len(self.workbook.keys() - 1), sheet_name)
+
 
     def del_sheet(self, sheet_name: str) -> None:
         # Delete the spreadsheet with the specified name.
@@ -63,7 +148,11 @@ class Workbook:
         # case does not have to.
         #
         # If the specified sheet name is not found, a KeyError is raised.
-        pass
+        if sheet_name.lower() in lower_sheetnames:
+            
+            
+        else:
+            raise KeyError("Sheet not found")
 
     def get_sheet_extent(self, sheet_name: str) -> Tuple[int, int]:
         # Return a tuple (num-cols, num-rows) indicating the current extent of
@@ -141,95 +230,10 @@ class Workbook:
 
 class Sheet:
     def __init__(self):
-        pass
-
+        pass 
     def getName(self):
         pass
-
     def getMatrix(self):
         pass
-
     def getCell(self):
-        pass
-
-
-class Cell:
-    def __init__(self):
-        pass
-
-    def getContent(self):
-        pass
-
-    def getCellReference(self):
-        """Use [col][row]"""
-        pass
-
-    def getCellType(self):
-        pass
-
-
-class CellErrorType(enum.Enum):
-    """
-    This enum specifies the kinds of errors that spreadsheet cells can hold.
-    """
-
-    # DO NOT CHANGE numeric values below
-    # A formula doesn't parse successfully ("#ERROR!")
-    PARSE_ERROR = 1
-
-    # A cell is part of a circular reference ("#CIRCREF!")
-    CIRCULAR_REFERENCE = 2
-
-    # A cell-reference is invalid in some way ("#REF!")
-    BAD_REFERENCE = 3
-
-    # Unrecognized function name ("#NAME?")
-    BAD_NAME = 4
-
-    # A value of the wrong type was encountered during evaluation ("#VALUE!")
-    TYPE_ERROR = 5
-
-    # A divide-by-zero was encountered during evaluation ("#DIV/0!")
-    DIVIDE_BY_ZERO = 6
-
-
-class CellError:
-    """
-    This class represents an error value from user input, cell parsing, or
-    evaluation.
-    """
-
-    def __init__(
-        self,
-        error_type: CellErrorType,
-        detail: str,
-        exception: Optional[Exception] = None,
-    ):
-        self._error_type = error_type
-        self._detail = detail
-        self._exception = exception
-
-    def get_type(self) -> CellErrorType:
-        """The category of the cell error."""
-        return self._error_type
-
-    def get_detail(self) -> str:
-        """More detail about the cell error."""
-        return self._detail
-
-    def get_exception(self) -> Optional[Exception]:
-        """
-        If the cell error was generated from a raised exception, this is the
-        exception that was raised.  Otherwise this will be None.
-        """
-        return self._exception
-
-    def __str__(self) -> str:
-        return f'ERROR[{self._error_type}, "{self._detail}"]'
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-
-if __name__ == "__main__":
-    workbook = Workbook()
+        pass 
