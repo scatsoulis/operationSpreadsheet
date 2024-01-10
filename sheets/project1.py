@@ -122,7 +122,7 @@ class Workbook:
 
         # handles empty string sheet name
         index = 0
-        sheet_name = clearWhitespace(sheet_name)
+        sheet_name = clearWhitespaceEdge(sheet_name)
         if sheet_name == "":
             raise ValueError("Sheet name cannot be an empty string")
         if sheet_name.lower() in self.lower_sheetnames:
@@ -136,7 +136,7 @@ class Workbook:
         if not sheet_name:
             sheet_name = "Sheet" + self.curr_gen
             self.curr_gen += 1
-        lower_sheetnames[sheet_name.lower] = sheet_name
+        lower_sheetnames[sheet_name.lower()] = sheet_name
         self.workbook[sheet_name] = Sheet(sheet_name)
         return (len(self.workbook.keys() - 1), sheet_name)
 
@@ -149,8 +149,8 @@ class Workbook:
         #
         # If the specified sheet name is not found, a KeyError is raised.
         if sheet_name.lower() in lower_sheetnames:
-            
-            
+            original_sheetname = lower_sheetnames[sheet_name.lower()]
+            del self.workbook[original_sheetname]     
         else:
             raise KeyError("Sheet not found")
 
@@ -229,8 +229,11 @@ class Workbook:
 
 
 class Sheet:
-    def __init__(self):
-        pass 
+    def __init__(self, sheet_name):
+        self.sheet_name = sheet_name
+        self.x_extent = None
+        self.y_extent = None 
+    def set_x_extent()
     def getName(self):
         pass
     def getMatrix(self):
