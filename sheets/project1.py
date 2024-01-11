@@ -186,27 +186,55 @@ class Workbook:
 class Sheet:
     def __init__(self, sheet_name):
         self.sheet_name = sheet_name
-        self.data = np.empty((0, 0))
-        self.x_extent = None
-        self.y_extent = None
+        self.data = {}
+        self.x_extent = []
+        self.y_extent = [] 
 
-    @staticmethod
-    def update_extent_x(idx: int):
-        # increment self.extent_x at idx
-        # if idx is out of bounds, extend self.extent_x with 0's THEN increment
-        pass
+    # this function updates self.extent_x
+    # set increment to true if we are adding a value, and false if we are removing
+    def update_extent_x(self, idx : int, increment : bool):
+        x_len = len(self.x_extent)
+        match increment:
+            case True:
+                #increment self.extent_x
+                # if idx is out of bounds, extend self.extent_x with 0's THEN increment
+                if idx >= x_len:
+                    for i in range(0, idx + 1):
+                        self.x_extent.append(0)
+                self.x_extent[idx] += 1
+            case False:
+                # decrement self.extent_x
+                self.x_extent[idx] -= 1
 
-    @staticmethod
-    def update_extent_y(idx: int):
-        # increment self.extent_y at idx
-        # if idx is out of bounds, extend self.extent_y with 0's THEN increment
-        pass
+                new_end_idx = x_len
+                for i in range(x_len, -1, -1):
+                    if self.x_extent[i] == 0:
+                        new_end_idx -= 1
+                    else:
+                        break
+                self.x_extent = self.x_extent[:new_end_idx]
 
-    @staticmethod
-    def resize_data(idx_x: int, idx_y: int):
-        # check if idx_x and/or idx_y is out of bounds, and resize self.data accordingly
-        # make sure new entries created are initialized with (None, None)
-        pass
+    def update_extent_y(self, idx : int, increment : bool):
+        y_len = len(self.y_extent)
+        match increment:
+            case True:
+                #increment self.extent_y
+                # if idx is out of bounds, extend self.extent_y with 0's THEN increment
+                if idx >= y_len:
+                    for i in range(0, idx + 1):
+                        self.y_extent.append(0)
+                self.y_extent[idx] += 1
+            case False:
+                # decrement self.extent_y
+                self.y_extent[idx] -= 1
+
+                new_end_idx = y_len
+                for i in range(y_len, -1, -1):
+                    if self.y_extent[i] == 0:
+                        new_end_idx -= 1
+                    else:
+                        break
+                self.y_extent = self.y_extent[:new_end_idx]
 
     def getName(self):
         return self.sheet_name
@@ -256,7 +284,8 @@ class Sheet:
         # TODO: UPDATE CELL VALUE ACCORDINGLY
         # TODO: CHECK DEPENDENCIES TO SEE IF ANY OTHER CELLS
         #       NEED PROPOGATING THE VALUE CHANGE
-
+        
+    
         # if contents == "":
         #     return
 
@@ -276,69 +305,7 @@ class Sheet:
 
     def getCell(self, location: str) -> tuple[str, Any]:
         # This is not needed?
-        pass
-
-
-class CellErrorType(enum.Enum):
-    """
-    This enum specifies the kinds of errors that spreadsheet cells can hold.
-    """
-
-    # A formula doesn't parse successfully ("#ERROR!")
-    PARSE_ERROR = 1
-
-    # A cell is part of a circular reference ("#CIRCREF!")
-    CIRCULAR_REFERENCE = 2
-
-    # A cell-reference is invalid in some way ("#REF!")
-    BAD_REFERENCE = 3
-
-    # Unrecognized function name ("#NAME?")
-    BAD_NAME = 4
-
-    # A value of the wrong type was encountered during evaluation ("#VALUE!")
-    TYPE_ERROR = 5
-
-    # A divide-by-zero was encountered during evaluation ("#DIV/0!")
-    DIVIDE_BY_ZERO = 6
-
-
-class CellError:
-    """
-    This class represents an error value from user input, cell parsing, or
-    evaluation.
-    """
-
-    def __init__(
-        self,
-        error_type: CellErrorType,
-        detail: str,
-        exception: Optional[Exception] = None,
-    ):
-        self._error_type = error_type
-        self._detail = detail
-        self._exception = exception
-
-    def get_type(self) -> CellErrorType:
-        """The category of the cell error."""
-        return self._error_type
-
-    def get_detail(self) -> str:
-        """More detail about the cell error."""
-        return self._detail
-
-    def get_exception(self) -> Optional[Exception]:
-        """
-        If the cell error was generated from a raised exception, this is the
-        exception that was raised.  Otherwise this will be None.
-        """
-        return self._exception
-
-    def __str__(self) -> str:
-        return f'ERROR[{self._error_type}, "{self._detail}"]'
-
-    def __repr__(self) -> str:
-        return self.__str__()
+        pass 
 
 
 # class Cell:
@@ -346,7 +313,7 @@ class CellError:
 #     def __init__(self):
 #         self.contents = None
 #         self.value = None
-
+    
 #     def setContentValue(self, cont : str):
 #         if cont == "":
 #             return
@@ -369,6 +336,7 @@ class CellError:
 
 #     def getContent(self) -> str:
 #         return self.contents
-
+    
 #     def getValue(self) -> Any:
 #         return self.value
+
