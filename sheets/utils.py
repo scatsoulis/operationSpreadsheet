@@ -1,5 +1,6 @@
 # Generally useful functions for the sheets package
 import re
+import sys
 
 
 def testCaseInsensitive(newString: str, stringList: str):
@@ -27,26 +28,46 @@ def clearWhiteSpaceAll(data: str):
 def testEmptyCell():
     pass
 
-def locToIdx(location : str) -> tuple[int, int]:
-    # this will only be called with a valid location string
 
-    # convert the location string to (idx, idx)
+def locToIdx(location: str) -> tuple[int, int]:
+    """Convert location string to tuple of indices"""
+    # Question: uppercase letters only? OH (recall possible mixing)
 
-    # return tuple of x, y indices.
+    # Check for whitespaces/order/punctuation/repetition
+    pattern = r"^[a-zA-Z]+[0-9]+$"
+    assert bool(
+        re.match(pattern, location)
+    ), "Location pattern is wrong (whitespaces/order/punctuation/repetition/missing row,col)"
 
-    pass
+    # Split string and number
+    letters = ""
+    numbers = ""
+    for char in location:
+        if char.isalpha():
+            letters += char
+        elif char.isdigit():
+            numbers += char
 
-def isValidLoc(location : str) -> bool:
+    # Size check
+    assert len(letters) <= 4 and len(numbers) <= 4, "Max size (ZZZZ9999) exceeded."
 
-    # if loc has punctuation -> false
+    # Convert letter string into idx
+    base = ord("A") - 1
 
-    # if invalid loc -> return false
+    return (
+        sum(
+            26 ** (len(letters) - i - 1) * (ord(char) - base)
+            for i, char in enumerate(letters)
+        )
+        - 1
+    ), int(numbers) - 1
 
-    # else return true
-
-    pass
 
 if __name__ == "__main__":
+    print(locToIdx("A1"))
+    print(locToIdx("AB12"))
+    print(locToIdx("ZZZZ9999"))
+    sys.exit()
     data1 = clearWhiteSpaceEdges("  This is a test  ")
     data2 = clearWhiteSpaceAll("  This is a test  ")
 
