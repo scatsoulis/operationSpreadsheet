@@ -4,9 +4,9 @@ import sys
 
 # Should print the version number of your sheets library,
 # which should be 1.0 for the first project.
+print(f"Sheets engine version: {sheets.version()}")
 
-# FIX:
-# print(f"Using sheets engine version {sheets.version}")
+sys.exit()
 
 # Make a new empty workbook
 wb = sheets.Workbook()

@@ -1,3 +1,4 @@
 lark
 numpy
 cs130-sheets-cui
+scipy
