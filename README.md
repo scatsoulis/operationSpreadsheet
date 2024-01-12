@@ -1,4 +1,4 @@
- wrote a bunch of functions, and left lots of comments on what I've done and what needs to be done. I've made a new branch "cason"
+wrote a bunch of functions, and left lots of comments on what I've done and what needs to be done. I've made a new branch "cason"
 
 Updates :
 

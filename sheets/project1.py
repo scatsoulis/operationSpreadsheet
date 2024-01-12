@@ -19,7 +19,7 @@ import decimal
 import numpy as np
 import enum
 from typing import Optional, Tuple, Any, List
-from utils import isLocValid, locToIdx, clearWhiteSpaceEdges
+from .utils import isLocValid, locToIdx, clearWhiteSpaceEdges
 
 
 class Workbook:
