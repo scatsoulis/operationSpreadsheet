@@ -57,7 +57,7 @@ class Workbook:
         workbook's internal state."""
         # Testing note: play around with order ^  - try to break it
 
-        return list(self.workbook.keys())
+        return list(self.data.keys())
 
     def new_sheet(self, sheet_name: Optional[str] = None) -> tuple[int, str]:
         """Adds a new sheet to the workbook.  If the sheet name is specified, it
@@ -115,17 +115,18 @@ class Workbook:
             raise KeyError("Sheet not found")
 
     def get_sheet_extent(self, sheet_name: str) -> tuple[int, int]:
-        # Return a tuple (num-cols, num-rows) indicating the current extent of
-        # the specified spreadsheet.
-        #
-        # The sheet name match is case-insensitive; the text must match but the
-        # case does not have to.
-        #
-        # If the specified sheet name is not found, a KeyError is raised.
+        """Return a tuple (num-cols, num-rows) indicating the current extent of
+        the specified spreadsheet.
+
+        The sheet name match is case-insensitive; the text must match but the
+        case does not have to.
+
+        If the specified sheet name is not found, a KeyError is raised."""
+
         if sheet_name not in self.list_sheets():
             raise KeyError("Sheet not found.")
 
-        pass
+        return np.shape(self.data[sheet_name])[1], np.shape(self.data[sheet_name])[0]
 
     def set_cell_contents(
         self, sheet_name: str, location: str, contents: Optional[str]
@@ -385,6 +386,7 @@ if __name__ == "__main__":
     print(wb.new_sheet())
     print(wb.new_sheet("The Jimmy"))
     print(wb.new_sheet())
+    print(type(wb.get_sheet_extent("The Jimmy")[0]))
     sys.exit()
 
 
