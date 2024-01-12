@@ -17,7 +17,7 @@ import decimal
 import numpy as np
 import enum
 from typing import Optional, Tuple, Any
-from .utils import *
+from utils import *
 
 
 class Workbook:
@@ -28,14 +28,14 @@ class Workbook:
 
     def __init__(self):
         """Initialize a new empty workbook."""
-        
+
         # Workbook features
         self.workbook = {}
         self.lower_sheetnames = {}
+        self.data = {}
         self.curr_gen = 1
 
         # Sheet features
-        
 
     def num_sheets(self) -> int:
         """Returns the number of spreadsheets in the workbook."""
@@ -72,38 +72,29 @@ class Workbook:
         If the spreadsheet name is an empty string (not None), or it is
         otherwise invalid, a ValueError is raised."""
 
-        # TODO: Modify to return an error if whitespaces etc.
-
-        # handles empty string sheet name
-        index = 0
-
-        # Input not given
+        # Nonetype case vs. the rest (maybe a cleaner way to go about it - errors with None in some ifs below)
         if not sheet_name:
             sheet_name = "Sheet" + str(self.curr_gen)
             self.curr_gen += 1
-            # return sheet_name
-
-        # Input given
-        sheet_name = clearWhiteSpaceEdges(sheet_name)
-        if sheet_name == "":
-            raise ValueError("Sheet name cannot be an empty string")
-        elif sheet_name.lower() in self.lower_sheetnames:
-            raise ValueError("Sheet name already exists. Select a different name")
-        # handles invalid char for name
         else:
+            # Error catching
+            if sheet_name == "":  # Empty string
+                raise ValueError("Sheet name cannot be an empty string.")
+            if bool(sheet_name.lstrip() != sheet_name or sheet_name.rstrip() != sheet_name):  # Leading/trailing whitespaces
+                raise ValueError("Sheet name cannot contain leading/trailing whitespaces.")
+            if sheet_name.lower() in self.lower_sheetnames:  # Case-insensitivity
+                raise ValueError("Sheet name already exists - select a different one.")
             allowed_chars = ".?!,:;!@#$%^&*()-_abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            for char in sheet_name:
-                if char not in allowed_chars:
-                    raise ValueError(
-                        "Sheet name can only have the following characters: .?!,:;!@#$%^&*()-_"
-                    )
-        # if sheet name doesn't exist, generate name
-        self.lower_sheetnames[sheet_name.lower()] = sheet_name
+            if any(char not in allowed_chars for char in sheet_name):  # Character check
+                raise ValueError("Name contains disallowed characters.")
+            # Think about ways to break the above ^
 
-        self.workbook[sheet_name] = Sheet(sheet_name)
+        # Append sheetname to list of existing sheets.
         self.lower_sheetnames[sheet_name.lower()] = sheet_name
+        self.data[sheet_name] = np.empty((0, 0))
+        # self.workbook[sheet_name] = Sheet(sheet_name)
 
-        return len(self.workbook.keys()) - 1, sheet_name
+        return len(self.lower_sheetnames) - 1, sheet_name
 
     def del_sheet(self, sheet_name: str) -> None:
         # Delete the spreadsheet with the specified name.
@@ -155,8 +146,6 @@ class Workbook:
         # rather, the cell's value will be a CellError object indicating the
         # nature of the issue.
 
-
-
         pass
 
     def get_cell_contents(self, sheet_name: str, location: str) -> Optional[str]:
@@ -203,15 +192,15 @@ class Sheet:
         self.sheet_name = sheet_name
         self.data = {}
         self.x_extent = []
-        self.y_extent = [] 
+        self.y_extent = []
 
     # this function updates self.extent_x
     # set increment to true if we are adding a value, and false if we are removing
-    def update_extent_x(self, idx : int, increment : bool):
+    def update_extent_x(self, idx: int, increment: bool):
         x_len = len(self.x_extent)
         match increment:
             case True:
-                #increment self.extent_x
+                # increment self.extent_x
                 # if idx is out of bounds, extend self.extent_x with 0's THEN increment
                 if idx >= x_len:
                     for i in range(0, idx + 1):
@@ -229,11 +218,11 @@ class Sheet:
                         break
                 self.x_extent = self.x_extent[:new_end_idx]
 
-    def update_extent_y(self, idx : int, increment : bool):
+    def update_extent_y(self, idx: int, increment: bool):
         y_len = len(self.y_extent)
         match increment:
             case True:
-                #increment self.extent_y
+                # increment self.extent_y
                 # if idx is out of bounds, extend self.extent_y with 0's THEN increment
                 if idx >= y_len:
                     for i in range(0, idx + 1):
@@ -299,8 +288,7 @@ class Sheet:
         # TODO: UPDATE CELL VALUE ACCORDINGLY
         # TODO: CHECK DEPENDENCIES TO SEE IF ANY OTHER CELLS
         #       NEED PROPOGATING THE VALUE CHANGE
-        
-    
+
         # if contents == "":
         #     return
 
@@ -320,15 +308,22 @@ class Sheet:
 
     def getCell(self, location: str) -> tuple[str, Any]:
         # This is not needed?
-        pass 
+        pass
 
 
+if __name__ == "__main__":
+    wb = Workbook()
+
+    print(wb.new_sheet())
+    print(wb.new_sheet("jimmy"))
+    print(wb.new_sheet())
+    sys.exit()
 # class Cell:
 
 #     def __init__(self):
 #         self.contents = None
 #         self.value = None
-    
+
 #     def setContentValue(self, cont : str):
 #         if cont == "":
 #             return
@@ -351,7 +346,6 @@ class Sheet:
 
 #     def getContent(self) -> str:
 #         return self.contents
-    
+
 #     def getValue(self) -> Any:
 #         return self.value
-
