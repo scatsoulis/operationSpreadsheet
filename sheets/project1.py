@@ -12,6 +12,7 @@
 #
 # NOTE:  THIS FILE WILL NOT WORK AS-IS.  You are expected to incorporate it
 #        into your project in whatever way you see fit.
+
 import sys
 import scipy
 import decimal
@@ -431,8 +432,7 @@ if __name__ == "__main__":
     print(wb.new_sheet("Sheet2"))
     print(wb.new_sheet())
     wb.set_cell_contents("The Jimmy", "a1", "'HEY")
-    print(wb.get_cell_contents("The Jimmy", "a1"))
-    print(wb.get_cell_value("The Jimmy", "a3"))
+
     print(wb.get_sheet_extent("The Jimmy"))
     print(locToIdx("WWW718"))
     sys.exit()
