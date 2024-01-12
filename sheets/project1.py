@@ -88,7 +88,7 @@ class Workbook:
                 )
             if sheet_name.lower() in self.lower_sheetnames:  # Case-insensitivity
                 raise ValueError("Sheet name already exists - select a different one.")
-            allowed_chars = ".?!,:;!@#$%^&*()-_abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            allowed_chars = " .?!,:;!@#$%^&*()-_abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             if any(char not in allowed_chars for char in sheet_name):  # Character check
                 raise ValueError("Name contains disallowed characters.")
             # Think about ways to break the above ^
@@ -101,12 +101,13 @@ class Workbook:
         return len(self.lower_sheetnames) - 1, sheet_name
 
     def del_sheet(self, sheet_name: str) -> None:
-        # Delete the spreadsheet with the specified name.
-        #
-        # The sheet name match is case-insensitive; the text must match but the
-        # case does not have to.
-        #
-        # If the specified sheet name is not found, a KeyError is raised.
+        """Delete the spreadsheet with the specified name.
+
+        The sheet name match is case-insensitive; the text must match but the
+        case does not have to.
+
+        If the specified sheet name is not found, a KeyError is raised."""
+
         if sheet_name.lower() in self.lower_sheetnames:
             original_sheetname = self.lower_sheetnames[sheet_name.lower()]
             del self.workbook[original_sheetname]
@@ -191,6 +192,30 @@ class Workbook:
         pass
 
 
+class CellErrorType(enum.Enum):
+    """
+    This enum specifies the kinds of errors that spreadsheet cells can hold.
+    """
+
+    # A formula doesn't parse successfully ("#ERROR!")
+    PARSE_ERROR = 1
+
+    # A cell is part of a circular reference ("#CIRCREF!")
+    CIRCULAR_REFERENCE = 2
+
+    # A cell-reference is invalid in some way ("#REF!")
+    BAD_REFERENCE = 3
+
+    # Unrecognized function name ("#NAME?")
+    BAD_NAME = 4
+
+    # A value of the wrong type was encountered during evaluation ("#VALUE!")
+    TYPE_ERROR = 5
+
+    # A divide-by-zero was encountered during evaluation ("#DIV/0!")
+    DIVIDE_BY_ZERO = 6
+
+
 class CellError:
     """
     This class represents an error value from user input, cell parsing, or
@@ -228,30 +253,6 @@ class CellError:
     def __repr__(self) -> str:
         return self.__str__()
         pass
-
-
-class CellErrorType(enum.Enum):
-    """
-    This enum specifies the kinds of errors that spreadsheet cells can hold.
-    """
-
-    # A formula doesn't parse successfully ("#ERROR!")
-    PARSE_ERROR = 1
-
-    # A cell is part of a circular reference ("#CIRCREF!")
-    CIRCULAR_REFERENCE = 2
-
-    # A cell-reference is invalid in some way ("#REF!")
-    BAD_REFERENCE = 3
-
-    # Unrecognized function name ("#NAME?")
-    BAD_NAME = 4
-
-    # A value of the wrong type was encountered during evaluation ("#VALUE!")
-    TYPE_ERROR = 5
-
-    # A divide-by-zero was encountered during evaluation ("#DIV/0!")
-    DIVIDE_BY_ZERO = 6
 
 
 class Sheet:
@@ -382,7 +383,7 @@ if __name__ == "__main__":
     wb = Workbook()
 
     print(wb.new_sheet())
-    print(wb.new_sheet("jimmy"))
+    print(wb.new_sheet("The Jimmy"))
     print(wb.new_sheet())
     sys.exit()
 
