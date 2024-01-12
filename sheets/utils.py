@@ -1,6 +1,7 @@
 # Generally useful functions for the sheets package
 import re
 import sys
+from typing import Optional, Tuple, Any
 
 
 def testCaseInsensitive(newString: str, stringList: str):
@@ -29,7 +30,7 @@ def testEmptyCell():
     pass
 
 
-def locToIdx(location: str) -> tuple[int, int]:
+def locToIdx(location: str) -> Tuple[int, int]:
     """Convert location string to tuple of indices"""
     # Question: uppercase letters only? OH (recall possible mixing)
 
