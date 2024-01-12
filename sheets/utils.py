@@ -53,22 +53,48 @@ def locToIdx(location: str) -> tuple[int, int]:
 
     # Convert letter string into idx
     base = ord("A") - 1
+    letters = letters.upper()
 
     return (
         sum(
             26 ** (len(letters) - i - 1) * (ord(char) - base)
             for i, char in enumerate(letters)
         )
-        - 1
-    ), int(numbers) - 1
+        - 1,
+        int(numbers) - 1,
+    )
+
+
+def isLocValid(location: str):
+    # Pattern check
+    pattern = r"^[a-zA-Z]+[0-9]+$"
+    if not bool(re.match(pattern, location)):
+        raise ValueError(
+            "Location pattern is wrong (whitespaces/order/punctuation/repetition/missing row,col)"
+        )
+
+    # Split string and number
+    letters = ""
+    numbers = ""
+    for char in location:
+        if char.isalpha():
+            letters += char
+        elif char.isdigit():
+            numbers += char
+
+    # Size check
+    if len(letters) > 4 or len(numbers) > 4:
+        raise ValueError("Max size (ZZZZ9999) exceeded.")
 
 
 if __name__ == "__main__":
-    print(locToIdx("A1"))
+    data1 = clearWhiteSpaceEdges("")
+    print(type(data1))
+    sys.exit()
+    print(locToIdx("a1"))
     print(locToIdx("AB12"))
     print(locToIdx("ZZZZ9999"))
-    sys.exit()
-    data1 = clearWhiteSpaceEdges("  This is a test  ")
+    
     data2 = clearWhiteSpaceAll("  This is a test  ")
 
     print(data1)

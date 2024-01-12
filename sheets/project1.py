@@ -13,11 +13,12 @@
 # NOTE:  THIS FILE WILL NOT WORK AS-IS.  You are expected to incorporate it
 #        into your project in whatever way you see fit.
 import sys
+import scipy
 import decimal
 import numpy as np
 import enum
 from typing import Optional, Tuple, Any
-from utils import *
+from .utils import isLocValid, locToIdx, clearWhiteSpaceEdges
 
 
 class Workbook:
@@ -72,7 +73,7 @@ class Workbook:
         If the spreadsheet name is an empty string (not None), or it is
         otherwise invalid, a ValueError is raised."""
 
-        # Nonetype case vs. the rest (maybe a cleaner way to go about it - errors with None in some ifs below)
+        # None case
         if not sheet_name:
             sheet_name = "Sheet" + str(self.curr_gen)
             self.curr_gen += 1
@@ -95,7 +96,7 @@ class Workbook:
 
         # Append sheetname to list of existing sheets.
         self.lower_sheetnames[sheet_name.lower()] = sheet_name
-        self.data[sheet_name] = np.empty((0, 0))
+        self.data[sheet_name] = np.empty((0, 0, 2))
         # self.workbook[sheet_name] = Sheet(sheet_name)
 
         return len(self.lower_sheetnames) - 1, sheet_name
@@ -110,7 +111,7 @@ class Workbook:
 
         if sheet_name.lower() in self.lower_sheetnames:
             original_sheetname = self.lower_sheetnames[sheet_name.lower()]
-            del self.workbook[original_sheetname]
+            del self.data[original_sheetname]
         else:
             raise KeyError("Sheet not found")
 
@@ -131,28 +132,60 @@ class Workbook:
     def set_cell_contents(
         self, sheet_name: str, location: str, contents: Optional[str]
     ) -> None:
-        # Set the contents of the specified cell on the specified sheet.
-        #
-        # The sheet name match is case-insensitive; the text must match but the
-        # case does not have to.  Additionally, the cell location can be
-        # specified in any case.
-        #
-        # If the specified sheet name is not found, a KeyError is raised.
-        # If the cell location is invalid, a ValueError is raised.
-        #
-        # A cell may be set to "empty" by specifying a contents of None.
-        #
-        # Leading and trailing whitespace are removed from the contents before
-        # storing them in the cell.  Storing a zero-length string "" (or a
-        # string composed entirely of whitespace) is equivalent to setting the
-        # cell contents to None.
-        #
-        # If the cell contents appear to be a formula, and the formula is
-        # invalid for some reason, this method does not raise an exception;
-        # rather, the cell's value will be a CellError object indicating the
-        # nature of the issue.
+        """Set the contents of the specified cell on the specified sheet.
 
-        pass
+        The sheet name match is case-insensitive; the text must match but the
+        case does not have to.  Additionally, the cell location can be
+        specified in any case.
+
+        If the specified sheet name is not found, a KeyError is raised.
+        If the cell location is invalid, a ValueError is raised.
+
+        A cell may be set to "empty" by specifying a contents of None.
+
+        Leading and trailing whitespace are removed from the contents before
+        storing them in the cell.  Storing a zero-length string "" (or a
+        string composed entirely of whitespace) is equivalent to setting the
+        cell contents to None.
+
+        If the cell contents appear to be a formula, and the formula is
+        invalid for some reason, this method does not raise an exception;
+        rather, the cell's value will be a CellError object indicating the
+        nature of the issue."""
+        # Cell location checks
+        # Sheet name existence
+        if sheet_name not in self.list_sheets():
+            raise KeyError("Sheet not found.")
+
+        # Cell location check
+        isLocValid(location)
+
+        # Clear leading or trailing whitespace (empty string -> still empty string)
+        contents = clearWhiteSpaceEdges(contents)
+
+        # Contents check
+        if contents == "":  # Empty string
+            contents = None
+            value = None
+        elif contents[0] == "'":  # String
+            # contents = contents
+            value = contents[1:]
+        elif contents[0] == "=":  # Formula
+            pass
+            # contents = contents
+            # value =
+        else:  # Literal value
+            pass
+
+        # Get cell location
+        cell_loc = locToIdx(location)
+
+        # Assign content to cell
+        # np.reshape(self.data[sheet_name], tuple(np.array(cell_loc) + 1), 2)
+        # print(self.data[sheet_name].shape)
+        # self.data[sheet_name][cell_loc[1]][cell_loc[0]] = contents
+
+        sys.exit()
 
     def get_cell_contents(self, sheet_name: str, location: str) -> Optional[str]:
         # Return the contents of the specified cell on the specified sheet.
@@ -386,7 +419,7 @@ if __name__ == "__main__":
     print(wb.new_sheet())
     print(wb.new_sheet("The Jimmy"))
     print(wb.new_sheet())
-    print(type(wb.get_sheet_extent("The Jimmy")[0]))
+    print(wb.get_sheet_extent("The Jimmy"))
     sys.exit()
 
 
