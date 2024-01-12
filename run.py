@@ -1,13 +1,26 @@
 import decimal
 import sheets
+import sys
 
 # Should print the version number of your sheets library,
 # which should be 1.0 for the first project.
-print(f"Using sheets engine version {sheets.version}")
+
+# FIX:
+# print(f"Using sheets engine version {sheets.version}")
 
 # Make a new empty workbook
 wb = sheets.Workbook()
+
+# Create a couple sheets
 (index, name) = wb.new_sheet()
+(index, name) = wb.new_sheet()
+
+# List sheets
+print(wb.list_sheets())
+
+# Delete first sheet and print new list
+wb.del_sheet("Sheet1")
+print(wb.list_sheets())
 
 # Should print:  New spreadsheet "Sheet1" at index 0
 print(f'New spreadsheet "{name}" at index {index}')
@@ -15,6 +28,8 @@ print(f'New spreadsheet "{name}" at index {index}')
 wb.set_cell_contents(name, "a1", "12")
 wb.set_cell_contents(name, "b1", "34")
 wb.set_cell_contents(name, "c1", "=a1+b1")
+
+sys.exit()
 
 # value should be a decimal.Decimal('46')
 value = wb.get_cell_value(name, "c1")

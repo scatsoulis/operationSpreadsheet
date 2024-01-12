@@ -14,10 +14,10 @@
 #        into your project in whatever way you see fit.
 import sys
 import decimal
-from utils import *
 import numpy as np
 import enum
 from typing import Optional, Tuple, Any
+from .utils import *
 
 
 class Workbook:
@@ -27,41 +27,52 @@ class Workbook:
     # values should cause the workbook's contents to be updated properly.
 
     def __init__(self):
-        # Initialize a new empty workbook.
+        """Initialize a new empty workbook."""
+        
+        # Workbook features
         self.workbook = {}
         self.lower_sheetnames = {}
         self.curr_gen = 1
 
+        # Sheet features
+        
+
     def num_sheets(self) -> int:
-        # Return the number of spreadsheets in the workbook.
+        """Returns the number of spreadsheets in the workbook."""
+
+        # Make sure it is always consistent with functions below
         return len(self.workbook.keys())
 
     def list_sheets(self) -> list[str]:
-        # Return a list of the spreadsheet names in the workbook, with the
-        # capitalization specified at creation, and in the order that the sheets
-        # appear within the workbook.
-        #
-        # In this project, the sheet names appear in the order that the user
-        # created them; later, when the user is able to move and copy sheets,
-        # the ordering of the sheets in this function's result will also reflect
-        # such operations.
-        #
-        # A user should be able to mutate the return-value without affecting the
-        # workbook's internal state.
+        """Return a list of the spreadsheet names in the workbook, with the
+        capitalization specified at creation, and in the order that the sheets
+        appear within the workbook.
+
+        In this project, the sheet names appear in the order that the user
+        created them; later, when the user is able to move and copy sheets,
+        the ordering of the sheets in this function's result will also reflect
+        such operations.
+
+        A user should be able to mutate the return-value without affecting the
+        workbook's internal state."""
+        # Testing note: play around with order ^  - try to break it
+
         return list(self.workbook.keys())
 
     def new_sheet(self, sheet_name: Optional[str] = None) -> tuple[int, str]:
-        # Add a new sheet to the workbook.  If the sheet name is specified, it
-        # must be unique.  If the sheet name is None, a unique sheet name is
-        # generated.  "Uniqueness" is determined in a case-insensitive manner,
-        # but the case specified for the sheet name is preserved.
-        #
-        # The function returns a tuple with two elements:
-        # (0-based index of sheet in workbook, sheet name).  This allows the
-        # function to report the sheet's name when it is auto-generated.
-        #
-        # If the spreadsheet name is an empty string (not None), or it is
-        # otherwise invalid, a ValueError is raised.
+        """Adds a new sheet to the workbook.  If the sheet name is specified, it
+        must be unique.  If the sheet name is None, a unique sheet name is
+        generated.  "Uniqueness" is determined in a case-insensitive manner,
+        but the case specified for the sheet name is preserved.
+
+        The function returns a tuple with two elements:
+        (0-based index of sheet in workbook, sheet name).  This allows the
+        function to report the sheet's name when it is auto-generated.
+
+        If the spreadsheet name is an empty string (not None), or it is
+        otherwise invalid, a ValueError is raised."""
+
+        # TODO: Modify to return an error if whitespaces etc.
 
         # handles empty string sheet name
         index = 0
@@ -88,13 +99,11 @@ class Workbook:
                     )
         # if sheet name doesn't exist, generate name
         self.lower_sheetnames[sheet_name.lower()] = sheet_name
-        print(self.lower_sheetnames)
-        print("hello")
 
         self.workbook[sheet_name] = Sheet(sheet_name)
         self.lower_sheetnames[sheet_name.lower()] = sheet_name
 
-        return (len(self.workbook.keys()) - 1, sheet_name)
+        return len(self.workbook.keys()) - 1, sheet_name
 
     def del_sheet(self, sheet_name: str) -> None:
         # Delete the spreadsheet with the specified name.
@@ -117,6 +126,9 @@ class Workbook:
         # case does not have to.
         #
         # If the specified sheet name is not found, a KeyError is raised.
+        if sheet_name not in self.list_sheets():
+            raise KeyError("Sheet not found.")
+
         pass
 
     def set_cell_contents(
@@ -141,7 +153,10 @@ class Workbook:
         # If the cell contents appear to be a formula, and the formula is
         # invalid for some reason, this method does not raise an exception;
         # rather, the cell's value will be a CellError object indicating the
-        # naure of the issue.
+        # nature of the issue.
+
+
+
         pass
 
     def get_cell_contents(self, sheet_name: str, location: str) -> Optional[str]:
