@@ -21,19 +21,26 @@ from .utils import isLocValid, locToIdx, clearWhiteSpaceEdges
 
 
 class Workbook:
-    # A workbook containing zero or more named spreadsheets.
-    #
-    # Any and all operations on a workbook that may affect calculated cell
-    # values should cause the workbook's contents to be updated properly.
+    """A workbook containing zero or more named spreadsheets.
+
+    Any and all operations on a workbook that may affect calculated cell
+    values should cause the workbook's contents to be updated properly."""
 
     def __init__(self):
         """Initialize a new empty workbook."""
 
         # Workbook features
-        self.workbook = {}
         self.lower_sheetnames = {}
         self.data = {}
         self.curr_gen = 1
+
+        self.extents = {}
+
+        # Graph features
+        self.formula_graph = None  # Graph object
+
+        self.x_extent = []
+        self.y_extent = []
 
         # Sheet features
 
@@ -41,7 +48,7 @@ class Workbook:
         """Returns the number of spreadsheets in the workbook."""
 
         # Make sure it is always consistent with functions below
-        return len(self.workbook.keys())
+        return len(self.data.keys())
 
     def list_sheets(self) -> list[str]:
         """Return a list of the spreadsheet names in the workbook, with the
@@ -57,7 +64,7 @@ class Workbook:
         workbook's internal state."""
         # Testing note: play around with order ^  - try to break it
 
-        return list(self.data.keys())
+        return list(self.lower_sheetnames.values())
 
     def new_sheet(self, sheet_name: Optional[str] = None) -> tuple[int, str]:
         """Adds a new sheet to the workbook.  If the sheet name is specified, it
@@ -75,6 +82,9 @@ class Workbook:
         # None case
         if not sheet_name:
             sheet_name = "Sheet" + str(self.curr_gen)
+            while sheet_name.lower() in self.lower_sheetnames:
+                self.curr_gen += 1
+                sheet_name = "Sheet" + str(self.curr_gen)
             self.curr_gen += 1
         else:
             # Error catching
@@ -95,8 +105,8 @@ class Workbook:
 
         # Append sheetname to list of existing sheets.
         self.lower_sheetnames[sheet_name.lower()] = sheet_name
-        self.data[sheet_name] = np.empty((0, 0, 2))
-        # self.workbook[sheet_name] = Sheet(sheet_name)
+        self.data[sheet_name.lower()] = {}
+        self.extents[sheet_name.lower()] = ([0], [0])
 
         return len(self.lower_sheetnames) - 1, sheet_name
 
@@ -109,8 +119,15 @@ class Workbook:
         If the specified sheet name is not found, a KeyError is raised."""
 
         if sheet_name.lower() in self.lower_sheetnames:
-            original_sheetname = self.lower_sheetnames[sheet_name.lower()]
-            del self.data[original_sheetname]
+            del self.data[sheet_name.lower()]
+            del self.lower_sheetnames[sheet_name.lower()]
+            del self.extents[sheet_name.lower()]
+
+            # TODO:
+            # REMOVE THE NODES FROM SELF.GRAPH WHICH COME FROM THIS SHEET
+            # CHECK IF THIS CAUSES ERRORS IN OTHER SHEETS
+            # PROPOGATE ERRORS IF NECESSARY
+
         else:
             raise KeyError("Sheet not found")
 
@@ -123,10 +140,15 @@ class Workbook:
 
         If the specified sheet name is not found, a KeyError is raised."""
 
-        if sheet_name not in self.list_sheets():
+        lower_name = sheet_name.lower()
+
+        if lower_name not in self.lower_sheetnames:
             raise KeyError("Sheet not found.")
 
-        return np.shape(self.data[sheet_name])[1], np.shape(self.data[sheet_name])[0]
+        x_extents = self.extents[lower_name][0]
+        y_extents = self.extents[lower_name][1]
+
+        return len(x_extents) - 1, len(y_extents) - 1
 
     def set_cell_contents(
         self, sheet_name: str, location: str, contents: Optional[str]
@@ -153,31 +175,54 @@ class Workbook:
         nature of the issue."""
         # Cell location checks
         # Sheet name existence
-        if sheet_name not in self.list_sheets():
+
+        lower_name = sheet_name.lower()
+
+        if lower_name not in self.lower_sheetnames:
             raise KeyError("Sheet not found.")
 
-        # Cell location check
+        # Cell location check and retrieval
         isLocValid(location)
+        x_idx, y_idx = locToIdx(location)
 
         # Clear leading or trailing whitespace (empty string -> still empty string)
         contents = clearWhiteSpaceEdges(contents)
 
         # Contents check
         if contents == "":  # Empty string
-            contents = None
-            value = None
+            self.data[lower_name][(x_idx, y_idx)] = (
+                None,
+                None,
+            )  # TODO: THIS IS NOT INITIALIZING DATA DICTIONARY CORRECTLY
         elif contents[0] == "'":  # String
-            # contents = contents
-            value = contents[1:]
+            self.data[lower_name][(x_idx, y_idx)] = (contents, contents[1:])
         elif contents[0] == "=":  # Formula
             pass
             # contents = contents
-            # value =
+            # value
+        # TODO:
+
+        # PARSE GRAPH, SEE WHERE INDEX WOULD FIT IN THE CURRENT CONNECTIONS
+
+        # TOPOLOGICAL SORT OF GRAPH
+
+        # FOLLOW SORT ORDER TO EVALULATE FUNCTIONS SUCH THAT ALL PROPPER CELLS GET FILLED IN
+
+        # CHECK VALID FORMULA, otherwise set VALUE as APPROPRIATE CELL ERROR
         else:  # Literal value
-            pass
+            self.data[lower_name][(x_idx, y_idx)] = (
+                contents,
+                decimal.Decimal(contents),
+            )
+
+        # TODO: UPDATE SHEET EXTENT LISTS
+        # grab self.data[idx-x][idx-y]
+        # CHECK IF CELL IS SET
+        # if so, no need to update self.extent_x or self.extent_y
+        # otherwise if cell == (None, None), update self.extent_x and/or self.extent_y (possibly create helper functions for each of these)
+        # could be done with helper functions update_extent_x(idx-y) and update_extent_y(idx-x)
 
         # Get cell location
-        cell_loc = locToIdx(location)
 
         # Assign content to cell
         # np.reshape(self.data[sheet_name], tuple(np.array(cell_loc) + 1), 2)
@@ -202,38 +247,69 @@ class Workbook:
         #
         # This method will never return a zero-length string; instead, empty
         # cells are indicated by a value of None.
-        pass
+        lower_name = sheet_name.lower()
+
+        if lower_name not in self.lower_sheetnames:
+            raise KeyError("Sheet not found.")
+
+        # cell location check
+        isLocValid(location)
+
+        # get cell location
+        x_idx, y_idx = locToIdx(location)
+
+        if (x_idx, y_idx) not in self.data[lower_name]:
+            return None
+
+        content, value = self.data[lower_name][(x_idx, y_idx)]
+
+        if content == "":
+            return None
+
+        return content
 
     def get_cell_value(self, sheet_name: str, location: str) -> Any:
-        # Return the evaluated value of the specified cell on the specified
-        # sheet.
-        #
-        # The sheet name match is case-insensitive; the text must match but the
-        # case does not have to.  Additionally, the cell location can be
-        # specified in any case.
-        #
-        # If the specified sheet name is not found, a KeyError is raised.
-        # If the cell location is invalid, a ValueError is raised.
-        #
-        # The value of empty cells is None.  Non-empty cells may contain a
-        # value of str, decimal.Decimal, or CellError.
-        #
-        # Decimal values will not have trailing zeros to the right of any
-        # decimal place, and will not include a decimal place if the value is a
-        # whole number.  For example, this function would not return
-        # Decimal('1.000'); rather it would return Decimal('1').
-        pass
+        """Return the evaluated value of the specified cell on the specified
+        sheet.
 
+        The sheet name match is case-insensitive; the text must match but the
+        case does not have to.  Additionally, the cell location can be
+        specified in any case.
 
-class Sheet:
-    def __init__(self, sheet_name):
-        self.sheet_name = sheet_name
-        self.data = {}
-        self.x_extent = []
-        self.y_extent = []
+        If the specified sheet name is not found, a KeyError is raised.
+        If the cell location is invalid, a ValueError is raised.
 
-    # this function updates self.extent_x
-    # set increment to true if we are adding a value, and false if we are removing
+        The value of empty cells is None.  Non-empty cells may contain a
+        value of str, decimal.Decimal, or CellError.
+
+        Decimal values will not have trailing zeros to the right of any
+        decimal place, and will not include a decimal place if the value is a
+        whole number.  For example, this function would not return
+        Decimal('1.000'); rather it would return Decimal('1')."""
+
+        lower_name = sheet_name.lower()
+
+        if lower_name not in self.lower_sheetnames:
+            raise KeyError("Sheet not found.")
+
+        # cell location check
+        isLocValid(location)
+
+        # get cell location
+        x_idx, y_idx = locToIdx(location)
+
+        if (x_idx, y_idx) not in self.data[lower_name]:
+            return None
+
+        content, value = self.data[lower_name][(x_idx, y_idx)]
+
+        if value == "":
+            return None
+
+        # TODO: ROUND/FORMAT DECIMALS
+
+        return value
+
     def update_extent_x(self, idx: int, increment: bool):
         x_len = len(self.x_extent)
         match increment:
@@ -278,76 +354,6 @@ class Sheet:
                         break
                 self.y_extent = self.y_extent[:new_end_idx]
 
-    def getName(self):
-        return self.sheet_name
-
-    def set_cell_contents(self, location: str, contents: Optional[str]) -> None:
-        return
-        # If the cell location is invalid, a ValueError is raised.
-        #
-        # A cell may be set to "empty" by specifying a contents of None.
-        #
-        # Leading and trailing whitespace are removed from the contents before
-        # storing them in the cell.  Storing a zero-length string "" (or a
-        # string composed entirely of whitespace) is equivalent to setting the
-        # cell contents to None.
-        #
-        # If the cell contents appear to be a formula, and the formula is
-        # invalid for some reason, this method does not raise an exception;
-        # rather, the cell's value will be a CellError object indicating the
-        # naure of the issue.
-
-        # TODO: CALL isValidLoc() to check loc is valid
-        # if not, raise ValueError()
-
-        # TODO: ELSE
-        # USE UTIL TO CONVERT LOC TO (idx-x, idx-y) using locToIdx() from utils
-
-        # TODO: check if self.data needs to be resized (possibly create helper functions resizing)
-        # check if idx-x is out of bounds -> resize
-        # check if idx-y is out of bounds -> resize
-        # could be done with helper by calling resize(idx-x, idx-y)
-
-        # TODO: grab self.data[idx-x][idx-y]
-        # CHECK IF CELL IS SET
-        # if so, no need to update self.extent_x or self.extent_y
-        # otherwise if cell == (None, None), update self.extent_x and/or self.extent_y (possibly create helper functions for each of these)
-        # could be done with helper functions update_extent_x(idx-y) and update_extent_y(idx-x)
-
-        # TODO: UPDATE CELL CONTENTS
-        # CHECK contents == None
-        # REMOVE WHITESPACE
-        # CHECK contents == ""
-        # CHECK STRING contents[0] == "'"
-        # CHECK FORMULA contents[0] == "="
-        # CHECK VALID FORMULA, otherwise set VALUE as APPROPRIATE CELL ERROR
-        # ELSE NUM
-
-        # TODO: UPDATE CELL VALUE ACCORDINGLY
-        # TODO: CHECK DEPENDENCIES TO SEE IF ANY OTHER CELLS
-        #       NEED PROPOGATING THE VALUE CHANGE
-
-        # if contents == "":
-        #     return
-
-        # # SET CONTENTS
-        # self.contents = cont
-
-        # # SET VALUE
-        # if cont[0] == "'":
-        #     self.value = cont[1:]
-        # elif cont[0] == "=":
-        #     self.value = cont
-        # else:
-        #     try:
-        #         self.value = decimal.Decimal(cont)
-        #     except:
-        #         raise ValueError("This type not supported.")
-
-    def getCell(self, location: str) -> tuple[str, Any]:
-        # This is not needed?
-        pass
-
 
 if __name__ == "__main__":
     wb = Workbook()
@@ -356,37 +362,3 @@ if __name__ == "__main__":
     print(wb.new_sheet("The Jimmy"))
     print(wb.new_sheet())
     print(wb.get_sheet_extent("The Jimmy"))
-    sys.exit()
-
-
-# class Cell:
-
-#     def __init__(self):
-#         self.contents = None
-#         self.value = None
-
-#     def setContentValue(self, cont : str):
-#         if cont == "":
-#             return
-
-#         # SET CONTENTS
-#         self.contents = cont
-
-#         # SET VALUE
-#         if cont[0] == "'":
-#             self.value = cont[1:]
-#         elif cont[0] == "=":
-#             self.value = cont
-#         else:
-#             try:
-#                 self.value = decimal.Decimal(cont)
-#             except:
-#                 raise ValueError("This type not supported.")
-
-#         return
-
-#     def getContent(self) -> str:
-#         return self.contents
-
-#     def getValue(self) -> Any:
-#         return self.value
