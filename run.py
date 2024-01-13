@@ -6,7 +6,6 @@ import sys
 # which should be 1.0 for the first project.
 print(f"Sheets engine version: {sheets.version()}")
 
-sys.exit()
 
 # Make a new empty workbook
 wb = sheets.Workbook()
@@ -35,7 +34,7 @@ wb.set_cell_contents(name1, "c1", "=a1+b1")
 value = wb.get_cell_value(name1, "c1")
 assert value == decimal.Decimal("46")
 
-# Should print:  c1 = 46
+"""# Should print:  c1 = 46
 print(f"c1 = {value}")
 
 wb.set_cell_contents(name1, "d3", "=nonexistent!b4")
@@ -50,4 +49,4 @@ wb.set_cell_contents(name1, "e1", "#div/0!")
 wb.set_cell_contents(name1, "e2", "=e1+5")
 value = wb.get_cell_value(name1, "e2")
 assert isinstance(value, sheets.CellError)
-assert value.get_type() == sheets.CellErrorType.DIVIDE_BY_ZERO
+assert value.get_type() == sheets.CellErrorType.DIVIDE_BY_ZERO"""

@@ -94,7 +94,7 @@ if __name__ == "__main__":
     print(locToIdx("a1"))
     print(locToIdx("AB12"))
     print(locToIdx("ZZZZ9999"))
-    
+
     data2 = clearWhiteSpaceAll("  This is a test  ")
 
     print(data1)
