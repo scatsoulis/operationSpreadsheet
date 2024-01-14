@@ -1,3 +1,14 @@
+# Setup
+
+The engine runs within an environment you can reproduce as follows:
+```
+python3 -m venv myEnv
+source myEnv/bin/activate
+pip3 install -r reequirements.txt 
+```
+
+
+# Comments
 wrote a bunch of functions, and left lots of comments on what I've done and what needs to be done. I've made a new branch "cason"
 
 Updates :
