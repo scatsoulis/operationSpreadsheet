@@ -1,10 +1,10 @@
 # Setup
 
-The engine runs within an environment you can reproduce as follows:
+The engine runs within an environment you can reproduce as follows (from project root):
 ```
 python3 -m venv myEnv
 source myEnv/bin/activate
-pip3 install -r reequirements.txt 
+pip3 install -r requirements.txt 
 ```
 
 
