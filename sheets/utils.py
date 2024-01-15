@@ -1,6 +1,7 @@
 # Generally useful functions for the sheets package
 import re
 import sys
+import decimal
 from typing import Optional, Tuple, Any
 
 
@@ -88,10 +89,29 @@ def isLocValid(location: str):
         raise ValueError("Max size (ZZZZ9999) exceeded.")
 
 
+def strip_zeros(decimal_number: decimal.Decimal) -> decimal.Decimal:
+    """Strips trailing zeros from a decimal number.
+
+    Args:
+        decimal_number: A decimal.Decimal object.
+
+    Returns:
+        A decimal.Decimal object with trailing zeros removed.
+
+    Note: recall warning if input is very close to 0
+    """
+
+    if isinstance(decimal_number, str):
+        raise TypeError("Input must be a decimal.Decimal object, not a string.")
+
+    return decimal_number.quantize(decimal.Decimal("1"))
+
+
 if __name__ == "__main__":
+    sys.exit()
+    print(strip_zeros(decimal.Decimal("0.00000")))
     data1 = clearWhiteSpaceEdges("")
     print(type(data1))
-    sys.exit()
     print(locToIdx("a1"))
     print(locToIdx("AB12"))
     print(locToIdx("ZZZZ9999"))

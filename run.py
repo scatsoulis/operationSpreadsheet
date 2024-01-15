@@ -6,7 +6,6 @@ import sys
 # which should be 1.0 for the first project.
 print(f"Sheets engine version: {sheets.version()}")
 
-
 # Make a new empty workbook
 wb = sheets.Workbook()
 
@@ -24,10 +23,11 @@ print(wb.list_sheets())
 # Should print:  New spreadsheet "Sheet1" at index 0
 print(f'New spreadsheet "{name1}" at index {index1}')
 
-wb.set_cell_contents(name1, "a2", "12")
+wb.set_cell_contents(name1, "a1", "10.000000")
+wb.set_cell_contents(name1, "b1", "15.000")
+wb.set_cell_contents(name1, "c1", "= a1 + b1  ")
 sys.exit()
 wb.set_cell_contents(name1, "b1", "34")
-wb.set_cell_contents(name1, "c1", "=a1+b1")
 
 
 # value should be a decimal.Decimal('46')

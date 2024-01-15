@@ -14,10 +14,13 @@
 #        into your project in whatever way you see fit.
 import sys
 import scipy
+import lark
 import decimal
 import numpy as np
+
 from typing import Optional, Tuple, Any
-from .utils import isLocValid, locToIdx, clearWhiteSpaceEdges
+from .formula import FormulaEvaluator, CellRefFinder
+from .utils import isLocValid, locToIdx, clearWhiteSpaceEdges, strip_zeros
 
 
 class Workbook:
@@ -190,31 +193,69 @@ class Workbook:
 
         # Contents check
         if contents == "":  # Empty string
-            self.data[lower_name][(x_idx, y_idx)] = (
+            self.data[lower_name][location] = (
                 None,
                 None,
             )  # TODO: THIS IS NOT INITIALIZING DATA DICTIONARY CORRECTLY
-        elif contents[0] == "'":  # String
-            self.data[lower_name][(x_idx, y_idx)] = (contents, contents[1:])
-        elif contents[0] == "=":  # Formula
-            pass
-            # contents = contents
-            # value
+        elif contents[0] == "'":  # String (it's a number, account for possibly leading 0s)
+            self.data[lower_name][location] = (contents, contents[1:])
+        elif contents[0] == "=":  # Formula parser (first stage)
+            print("formula --------")
+            # Careful: = follows by another = etc. check for validity of formula body!
+            # Also: decimal.Decimal: do not convert NaN nor Infinity etc. they stay as string (only numeric values go through Decimal)
+            print(contents)
+
+            # Set up grammar
+            parser = lark.Lark.open("formulas.lark", rel_to=__file__, start="formula")
+            evaluator = FormulaEvaluator()
+
+            tree = parser.parse(contents)
+            print(tree.pretty())
+
+            v = CellRefFinder()
+            v.visit(tree)
+            print(v.cell_refs)
+
+            for cell_id in v.cell_refs:  # First check validity of all cell IDs
+                isLocValid(cell_id)
+
+            for cell_id in v.cell_refs:  # Compute
+                print(cell_id)
+                # tree.children[0] = 
+                value = evaluator.visit(tree)
+            # self.data[lower_name][location] = (contents[1:], strip_zeros(value))
+
+            value = evaluator.visit(tree)
+            print(f"value = {value} (type is {type(value)})")
+            print(self.data)
+
+            # Set contents and value (confirm format of contents)
+            self.data[lower_name][(x_idx, y_idx)] = (
+                contents[1:],
+                strip_zeros(value),
+            )
+            print(self.data[lower_name][(x_idx, y_idx)])
+
+            # Using visitor to scan tree
+            # Using transformer to evaluate tree
+
         # TODO:
-
         # PARSE GRAPH, SEE WHERE INDEX WOULD FIT IN THE CURRENT CONNECTIONS
-
         # TOPOLOGICAL SORT OF GRAPH
-
         # FOLLOW SORT ORDER TO EVALULATE FUNCTIONS SUCH THAT ALL PROPPER CELLS GET FILLED IN
-
         # CHECK VALID FORMULA, otherwise set VALUE as APPROPRIATE CELL ERROR
+        # Think about case 5 + a1
         else:  # Literal value
             self.data[lower_name][(x_idx, y_idx)] = (
                 contents,
-                decimal.Decimal(contents),
+                strip_zeros(decimal.Decimal(contents)),
             )
 
+        print("Literal value:")
+        print(type(contents))
+        print(self.data)
+
+        
         # TODO: UPDATE SHEET EXTENT LISTS
         # grab self.data[idx-x][idx-y]
         # CHECK IF CELL IS SET
@@ -228,8 +269,6 @@ class Workbook:
         # np.reshape(self.data[sheet_name], tuple(np.array(cell_loc) + 1), 2)
         # print(self.data[sheet_name].shape)
         # self.data[sheet_name][cell_loc[1]][cell_loc[0]] = contents
-
-        sys.exit()
 
     def get_cell_contents(self, sheet_name: str, location: str) -> Optional[str]:
         # Return the contents of the specified cell on the specified sheet.
