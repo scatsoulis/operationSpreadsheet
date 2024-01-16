@@ -19,7 +19,7 @@ import decimal
 import numpy as np
 
 from typing import Optional, Tuple, Any
-from .formula import FormulaEvaluator, CellRefFinder
+from .formula import FormulaEvaluator, CellRefFinder, CellDependencyGraph
 from .utils import isLocValid, locToIdx, clearWhiteSpaceEdges, strip_zeros
 
 
@@ -32,28 +32,27 @@ class Workbook:
     def __init__(self):
         """Initialize a new empty workbook."""
 
-        # Workbook features
+        # {lower_name: original_name}
         self.lower_sheetnames = {}
+
+        # {lower_name: {location_str: (contents, value)}}
+            # location example: "A9" or "a4"
         self.data = {}
+
+        # {lower_name: ([x_extents], [y_extents])}
+        self.extents = {}
+        
+        # Graph Object
+        self.formula_graph = CellDependencyGraph()
         self.curr_gen = 1
 
-        self.extents = {}
-
-        # Graph features
-        self.formula_graph = None  # Graph object
-
-        self.x_extent = []
-        self.y_extent = []
-
-        # Sheet features
 
     def num_sheets(self) -> int:
         """Returns the number of spreadsheets in the workbook."""
-
-        # Make sure it is always consistent with functions below
+        
         return len(self.data.keys())
 
-    def list_sheets(self) -> list[str]:
+    def list_sheets(self) -> Optional[str]:
         """Return a list of the spreadsheet names in the workbook, with the
         capitalization specified at creation, and in the order that the sheets
         appear within the workbook.
@@ -69,7 +68,7 @@ class Workbook:
 
         return list(self.lower_sheetnames.values())
 
-    def new_sheet(self, sheet_name: Optional[str] = None) -> tuple[int, str]:
+    def new_sheet(self, sheet_name: Optional[str] = None) -> Tuple[int, str]:
         """Adds a new sheet to the workbook.  If the sheet name is specified, it
         must be unique.  If the sheet name is None, a unique sheet name is
         generated.  "Uniqueness" is determined in a case-insensitive manner,
@@ -109,7 +108,7 @@ class Workbook:
         # Append sheetname to list of existing sheets.
         self.lower_sheetnames[sheet_name.lower()] = sheet_name
         self.data[sheet_name.lower()] = {}
-        self.extents[sheet_name.lower()] = ([0], [0])
+        self.extents[sheet_name.lower()] = ([], [])
 
         return len(self.lower_sheetnames) - 1, sheet_name
 
@@ -129,12 +128,12 @@ class Workbook:
             # TODO:
             # REMOVE THE NODES FROM SELF.GRAPH WHICH COME FROM THIS SHEET
             # CHECK IF THIS CAUSES ERRORS IN OTHER SHEETS
-            # PROPOGATE ERRORS IF NECESSARY
+            # PROPOGATE ERRORS IF NECESSARY    
 
         else:
             raise KeyError("Sheet not found")
 
-    def get_sheet_extent(self, sheet_name: str) -> tuple[int, int]:
+    def get_sheet_extent(self, sheet_name: str) -> Tuple[int, int]:
         """Return a tuple (num-cols, num-rows) indicating the current extent of
         the specified spreadsheet.
 
@@ -148,10 +147,9 @@ class Workbook:
         if lower_name not in self.lower_sheetnames:
             raise KeyError("Sheet not found.")
 
-        x_extents = self.extents[lower_name][0]
-        y_extents = self.extents[lower_name][1]
+        x_extents, y_extents = self.extents[lower_name]
 
-        return len(x_extents) - 1, len(y_extents) - 1
+        return len(x_extents), len(y_extents)
 
     def set_cell_contents(
         self, sheet_name: str, location: str, contents: Optional[str]
@@ -180,6 +178,7 @@ class Workbook:
         # Sheet name existence
 
         lower_name = sheet_name.lower()
+        location = location.lower()
 
         if lower_name not in self.lower_sheetnames:
             raise KeyError("Sheet not found.")
@@ -191,12 +190,17 @@ class Workbook:
         # Clear leading or trailing whitespace (empty string -> still empty string)
         contents = clearWhiteSpaceEdges(contents)
 
+        if location in lower_name:
+            curr_contents, curr_value = self.data[lower_name][location]
+        else:
+            if contents != "":
+                self.__update_extents(x_idx, y_idx, lower_name, True)
+
         # Contents check
         if contents == "":  # Empty string
-            self.data[lower_name][location] = (
-                None,
-                None,
-            )  # TODO: THIS IS NOT INITIALIZING DATA DICTIONARY CORRECTLY
+            if location in self.data[lower_name]:
+                del self.data[lower_name][location]
+                self.__update_extents(x_idx, y_idx, lower_name, False)
         elif contents[0] == "'":  # String (it's a number, account for possibly leading 0s)
             self.data[lower_name][location] = (contents, contents[1:])
         elif contents[0] == "=":  # Formula parser (first stage)
@@ -230,7 +234,7 @@ class Workbook:
             print(self.data)
 
             # Set contents and value (confirm format of contents)
-            self.data[lower_name][(x_idx, y_idx)] = (
+            self.data[lower_name][location] = (
                 contents[1:],
                 strip_zeros(value),
             )
@@ -245,8 +249,10 @@ class Workbook:
         # FOLLOW SORT ORDER TO EVALULATE FUNCTIONS SUCH THAT ALL PROPPER CELLS GET FILLED IN
         # CHECK VALID FORMULA, otherwise set VALUE as APPROPRIATE CELL ERROR
         # Think about case 5 + a1
+
+
         else:  # Literal value
-            self.data[lower_name][(x_idx, y_idx)] = (
+            self.data[lower_name][location] = (
                 contents,
                 strip_zeros(decimal.Decimal(contents)),
             )
@@ -254,14 +260,6 @@ class Workbook:
         print("Literal value:")
         print(type(contents))
         print(self.data)
-
-        
-        # TODO: UPDATE SHEET EXTENT LISTS
-        # grab self.data[idx-x][idx-y]
-        # CHECK IF CELL IS SET
-        # if so, no need to update self.extent_x or self.extent_y
-        # otherwise if cell == (None, None), update self.extent_x and/or self.extent_y (possibly create helper functions for each of these)
-        # could be done with helper functions update_extent_x(idx-y) and update_extent_y(idx-x)
 
         # Get cell location
 
@@ -287,6 +285,7 @@ class Workbook:
         # This method will never return a zero-length string; instead, empty
         # cells are indicated by a value of None.
         lower_name = sheet_name.lower()
+        location = location.lower()
 
         if lower_name not in self.lower_sheetnames:
             raise KeyError("Sheet not found.")
@@ -294,13 +293,10 @@ class Workbook:
         # cell location check
         isLocValid(location)
 
-        # get cell location
-        x_idx, y_idx = locToIdx(location)
-
-        if (x_idx, y_idx) not in self.data[lower_name]:
+        if location not in self.data[lower_name]:
             return None
 
-        content, value = self.data[lower_name][(x_idx, y_idx)]
+        content, value = self.data[lower_name][location]
 
         if content == "":
             return None
@@ -327,6 +323,7 @@ class Workbook:
         Decimal('1.000'); rather it would return Decimal('1')."""
 
         lower_name = sheet_name.lower()
+        location = location.lower()
 
         if lower_name not in self.lower_sheetnames:
             raise KeyError("Sheet not found.")
@@ -334,13 +331,10 @@ class Workbook:
         # cell location check
         isLocValid(location)
 
-        # get cell location
-        x_idx, y_idx = locToIdx(location)
-
-        if (x_idx, y_idx) not in self.data[lower_name]:
+        if location not in self.data[lower_name]:
             return None
 
-        content, value = self.data[lower_name][(x_idx, y_idx)]
+        content, value = self.data[lower_name][location]
 
         if value == "":
             return None
@@ -349,49 +343,42 @@ class Workbook:
 
         return value
 
-    def update_extent_x(self, idx: int, increment: bool):
-        x_len = len(self.x_extent)
-        match increment:
-            case True:
-                # increment self.extent_x
-                # if idx is out of bounds, extend self.extent_x with 0's THEN increment
-                if idx >= x_len:
-                    for i in range(0, idx + 1):
-                        self.x_extent.append(0)
-                self.x_extent[idx] += 1
-            case False:
-                # decrement self.extent_x
-                self.x_extent[idx] -= 1
+    def __update_extents(self, idx_x: int, idx_y: int, sheet_name: str, increment: bool):
+        x_extent_list, y_extent_list = self.extents[sheet_name] 
+        x_len = len(x_extent_list)
+        y_len = len(y_extent_list)
 
-                new_end_idx = x_len
-                for i in range(x_len, -1, -1):
-                    if self.x_extent[i] == 0:
-                        new_end_idx -= 1
-                    else:
-                        break
-                self.x_extent = self.x_extent[:new_end_idx]
+        if increment == True:
 
-    def update_extent_y(self, idx: int, increment: bool):
-        y_len = len(self.y_extent)
-        match increment:
-            case True:
-                # increment self.extent_y
-                # if idx is out of bounds, extend self.extent_y with 0's THEN increment
-                if idx >= y_len:
-                    for i in range(0, idx + 1):
-                        self.y_extent.append(0)
-                self.y_extent[idx] += 1
-            case False:
-                # decrement self.extent_y
-                self.y_extent[idx] -= 1
+            # if idx is out of bounds, extend list with 0's THEN increment
+            if idx_x >= x_len:
+                for i in range(0, idx_x + 1):
+                    x_extent_list.append(0)
+            x_extent_list[idx_x] += 1
 
-                new_end_idx = y_len
-                for i in range(y_len, -1, -1):
-                    if self.y_extent[i] == 0:
-                        new_end_idx -= 1
-                    else:
-                        break
-                self.y_extent = self.y_extent[:new_end_idx]
+            if idx_y >= y_len:
+                for i in range(0, idx_y + 1):
+                    y_extent_list.append(0)
+            y_extent_list[idx_y] += 1
+       
+        else:
+            # decrement self.extent_x
+            x_extent_list[idx_x] -= 1
+            y_extent_list[idx_y] -= 1
+
+            i = 1
+            while x_extent_list[x_len - i] == 0 and x_len - i > 0:
+                x_extent_list.pop()
+                i += 1
+            
+            i = 1
+            while y_extent_list[y_len - i] == 0 and y_len - i > 0:
+                y_extent_list.pop()
+                i += 1
+
+        self.extents[sheet_name] = (x_extent_list, y_extent_list)
+
+                
 
 
 if __name__ == "__main__":

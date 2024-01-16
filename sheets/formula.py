@@ -130,15 +130,22 @@ class CellDependencyGraph():
     def top_sort(self, sheet_name, curr_cell):
         visited = set()
         result = []
-        def dfs(self, sheet_name, curr_cell):
+        def dfs(sheet_name, curr_cell):
+            visited.add(curr_cell)
             for dependency in self.graph[sheet_name][curr_cell]:
                 if dependency not in visited:
                     # hasSheetName checks if the sheetname is in the cell information
                     if hasSheetName(dependency):
                         # if sheet name is in the cell information, then splits the cell name into sheet name and cell number
                         sheet_name, dependency = splitCellName(dependency)
-                    self.sort(self, sheet_name, dependency)
+                    dfs(sheet_name, dependency)
+                else:
+                    # THIS IS WHERE CYCLE IS DETECTED, RAISE ERROR
+                    raise RuntimeError(f"Cycle detected in cell dependency graph")
+
                 result.append(curr_cell)
+
+        
         dfs(sheet_name, curr_cell)
         return result[::-1]
     
